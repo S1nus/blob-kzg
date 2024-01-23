@@ -19,8 +19,7 @@ func main() {
 	}
 	fmt.Printf("Max bytes per blob: %d \n", MaxBytesForBlob)
 	fmt.Printf("Shares per blob: %d \n", MaxBytesForBlob/512)
-	blob := getRandomBlob()
-	fmt.Printf("blob: %x\n", blob)
+	blob := getRandBlob()
 	cmt, err := kzg.BlobToKZGCommitment(blob)
 	if err != nil {
 		fmt.Println("Error creating KZG commitment: ", err)
@@ -29,22 +28,25 @@ func main() {
 	fmt.Printf("Commitment bytes: %x \n", cmt)
 }
 
-func getRandomShare() [512]byte {
-	randomBytes := make([]byte, 512)
-	_, err := rand.Read(randomBytes)
-	if err != nil {
-		panic("couldn't generate shares")
+func getRandBlob() kzg.Blob {
+	var blob kzg.Blob
+	for i := 0; i < kzg.BytesPerBlob; i += kzg.BytesPerFieldElement {
+		fieldElementBytes := getRandFieldElement()
+		copy(blob[i:i+kzg.BytesPerFieldElement], fieldElementBytes[:])
 	}
-	return [512]byte(randomBytes)
-
+	return blob
 }
 
-func getRandomBlob() [MaxBytesForBlob]byte {
-	randomBytes := make([]byte, MaxBytesForBlob)
-	_, err := rand.Read(randomBytes)
+func getRandFieldElement() kzg.Bytes32 {
+	bytes := make([]byte, 31)
+	_, err := rand.Read(bytes)
 	if err != nil {
-		panic("couldn't generate blob")
+		panic("failed to get random field element")
 	}
-	return [MaxBytesForBlob]byte(randomBytes)
 
+	// This leaves the first byte in fieldElementBytes as
+	// zero, which guarantees it's a canonical field element.
+	var fieldElementBytes kzg.Bytes32
+	copy(fieldElementBytes[1:], bytes)
+	return fieldElementBytes
 }
