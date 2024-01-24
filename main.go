@@ -4,6 +4,9 @@ import (
 	"crypto/rand"
 	"fmt"
 
+	cblob "github.com/celestiaorg/celestia-app/pkg/blob"
+	inc "github.com/celestiaorg/celestia-app/pkg/inclusion"
+	namespace "github.com/celestiaorg/celestia-app/pkg/namespace"
 	kzg "github.com/ethereum/c-kzg-4844/bindings/go"
 )
 
@@ -26,6 +29,20 @@ func main() {
 		return
 	}
 	fmt.Printf("Commitment bytes: %x \n", cmt)
+	namespaceId, err := generateRandomBytes(namespace.NamespaceIDSize)
+	if err != nil {
+		fmt.Println("Error generating namespace id: ", err)
+		return
+	}
+	namespace := namespace.Namespace{Version: namespace.NamespaceVersionMax, ID: namespaceId}
+	b := cblob.New(namespace, blob[:], 0)
+	cc, err := inc.CreateCommitment(b)
+	if err != nil {
+		fmt.Println("Error creating celestia blob commitment: ", err)
+		return
+	}
+	fmt.Println("Blob commitment: ", cc)
+	fmt.Println("KZG commitment: ", cmt)
 }
 
 func getRandBlob() kzg.Blob {
@@ -49,4 +66,13 @@ func getRandFieldElement() kzg.Bytes32 {
 	var fieldElementBytes kzg.Bytes32
 	copy(fieldElementBytes[1:], bytes)
 	return fieldElementBytes
+}
+
+func generateRandomBytes(length int) ([]byte, error) {
+	randomBytes := make([]byte, length)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return nil, err
+	}
+	return randomBytes, nil
 }
